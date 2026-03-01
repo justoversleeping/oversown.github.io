@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BotTele2</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@700;800&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ═══════════════════════════════════════════
+       CUSTOMIZE THESE VARIABLES
+    ═══════════════════════════════════════════ */
+    :root {
+      --accent:     #9d7dff;      /* main purple */
+      --accent2:    #c084fc;      /* secondary purple */
+      --bg:         #080810;      /* page background */
+      --card:       #0e0e1c;      /* card background */
+      --border:     #1a1a30;      /* border color */
+      --text:       #d4d4f0;      /* main text */
+      --muted:      #44446a;      /* muted text */
+      --name:       BotTele2;     /* your name (used in JS) */
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Space Mono', monospace;
+      overflow-x: hidden;
+    }
+
+    /* ── Animated background ──────────────────── */
+    #bg-canvas {
+      position: fixed; inset: 0; z-index: 0;
+      pointer-events: none;
+    }
+
+    /* ── Grain overlay ────────────────────────── */
+    body::after {
+      content: '';
+      position: fixed; inset: 0; z-index: 1;
+      pointer-events: none;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      opacity: 0.4;
+    }
+
+    /* ── Layout ───────────────────────────────── */
+    .wrap {
+      position: relative; z-index: 2;
+      max-width: 480px; margin: 0 auto;
+      padding: 60px 20px 80px;
+      display: flex; flex-direction: column; gap: 18px;
+      animation: fadeUp .6s ease both;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Profile card ─────────────────────────── */
+    .profile-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px 24px 24px;
+      display: flex; flex-direction: column; align-items: center; gap: 14px;
+      animation: fadeUp .5s ease .1s both;
+    }
+
+    .avatar-ring {
+      width: 90px; height: 90px;
+      border-radius: 50%;
+      padding: 3px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      box-shadow: 0 0 32px rgba(157,125,255,.35);
+    }
+
+    .avatar-ring img {
+      width: 100%; height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+      background: var(--bg);
+      display: block;
+    }
+
+    .profile-name {
+      font-family: 'Syne', sans-serif;
+      font-size: 26px; font-weight: 800;
+      color: #fff; letter-spacing: -0.5px;
+      text-align: center;
+    }
+
+    .profile-tag {
+      font-size: 11px; color: var(--accent);
+      letter-spacing: 2px; text-transform: uppercase;
+      margin-top: -8px;
+    }
+
+    .profile-bio {
+      font-size: 12px; color: var(--muted);
+      text-align: center; line-height: 1.8;
+      max-width: 320px;
+    }
+
+    /* ── Status badge ─────────────────────────── */
+    .status {
+      display: inline-flex; align-items: center; gap: 7px;
+      background: rgba(157,125,255,.07);
+      border: 1px solid rgba(157,125,255,.15);
+      border-radius: 99px; padding: 5px 14px;
+      font-size: 11px; color: var(--accent);
+    }
+    .status-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: #5bff8f;
+      box-shadow: 0 0 8px rgba(91,255,143,.8);
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%,100% { box-shadow: 0 0 8px rgba(91,255,143,.8); }
+      50%      { box-shadow: 0 0 3px rgba(91,255,143,.2); }
+    }
+
+    /* ── Section title ────────────────────────── */
+    .section-label {
+      font-size: 9px; font-weight: 700; letter-spacing: 2.5px;
+      text-transform: uppercase; color: var(--muted);
+      padding: 0 2px; margin-bottom: -6px;
+    }
+
+    /* ── Link cards ───────────────────────────── */
+    .links { display: flex; flex-direction: column; gap: 9px; }
+
+    .link-card {
+      display: flex; align-items: center; gap: 14px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px; padding: 14px 18px;
+      text-decoration: none; color: var(--text);
+      transition: background .15s, border-color .2s, transform .15s;
+      animation: fadeUp .5s ease both;
+      cursor: pointer;
+    }
+    .link-card:hover {
+      background: #12121f;
+      border-color: var(--accent);
+      transform: translateX(4px);
+    }
+    .link-card:hover .link-arrow { opacity: 1; transform: translateX(0); }
+
+    .link-icon {
+      width: 38px; height: 38px; min-width: 38px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+
+    .link-text { flex: 1; min-width: 0; }
+    .link-name {
+      font-family: 'Syne', sans-serif;
+      font-size: 14px; font-weight: 700; color: #fff;
+    }
+    .link-sub { font-size: 10px; color: var(--muted); margin-top: 1px; }
+
+    .link-arrow {
+      opacity: 0; transform: translateX(-4px);
+      transition: all .15s; color: var(--accent);
+    }
+
+    /* ── Icon color themes ────────────────────── */
+    .ic-discord  { background: rgba(88,101,242,.15);  color: #5865f2; }
+    .ic-telegram { background: rgba(39,174,239,.15);  color: #27aeef; }
+    .ic-roblox   { background: rgba(226,28,28,.12);   color: #e21c1c; }
+    .ic-pekora   { background: rgba(157,125,255,.12); color: var(--accent); }
+    .ic-namemc   { background: rgba(98,200,98,.12);   color: #62c862; }
+    .ic-tiktok   { background: rgba(255,255,255,.06); color: #fff; }
+    .ic-youtube  { background: rgba(255,0,0,.12);     color: #ff4444; }
+    .ic-twitter  { background: rgba(29,161,242,.12);  color: #1da1f2; }
+    .ic-github   { background: rgba(255,255,255,.08); color: #ccc; }
+    .ic-steam    { background: rgba(100,149,237,.12); color: #6495ed; }
+    .ic-twitch   { background: rgba(145,70,255,.15);  color: #9146ff; }
+    .ic-spotify  { background: rgba(30,215,96,.12);   color: #1ed760; }
+
+    /* ── Music player ─────────────────────────── */
+    .music-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 18px;
+      animation: fadeUp .5s ease .35s both;
+    }
+
+    .music-header {
+      font-size: 9px; font-weight: 700; letter-spacing: 2.5px;
+      text-transform: uppercase; color: var(--muted);
+      margin-bottom: 14px;
+    }
+
+    .music-inner {
+      display: flex; gap: 14px; align-items: center;
+    }
+
+    .music-art {
+      width: 52px; height: 52px; min-width: 52px;
+      border-radius: 8px;
+      background: #1a1a2e;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      position: relative;
+    }
+    .music-art img {
+      width: 100%; height: 100%; object-fit: cover;
+    }
+    .music-art-placeholder {
+      width: 100%; height: 100%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+    }
+    .music-art.spinning img, .music-art.spinning .music-art-placeholder {
+      animation: spin 8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .music-info { flex: 1; min-width: 0; }
+    .music-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 14px; font-weight: 700; color: #fff;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .music-artist { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+    .music-controls {
+      display: flex; align-items: center; gap: 8px; margin-top: 14px;
+    }
+
+    .music-btn {
+      background: none; border: none; color: var(--muted);
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: color .15s; padding: 4px;
+      border-radius: 6px;
+    }
+    .music-btn:hover { color: var(--accent); }
+    .music-btn.play {
+      width: 36px; height: 36px;
+      background: var(--accent); color: #fff; border-radius: 50%;
+      box-shadow: 0 0 18px rgba(157,125,255,.4);
+      transition: background .15s, box-shadow .15s;
+    }
+    .music-btn.play:hover { background: var(--accent2); box-shadow: 0 0 24px rgba(192,132,252,.5); }
+
+    .music-progress-wrap {
+      flex: 1; height: 3px; background: #1a1a2e; border-radius: 9999px;
+      cursor: pointer; position: relative; overflow: hidden;
+    }
+    .music-progress-fill {
+      height: 100%; background: var(--accent); border-radius: 9999px;
+      width: 0%; transition: width .5s linear;
+    }
+
+    .music-time { font-size: 9px; color: var(--muted); min-width: 30px; text-align: right; }
+
+    .music-vol {
+      display: flex; align-items: center; gap: 6px; margin-top: 10px;
+    }
+    .music-vol svg { color: var(--muted); flex-shrink: 0; }
+    .music-vol input[type=range] {
+      -webkit-appearance: none; flex: 1; height: 3px;
+      background: #1a1a2e; border-radius: 9999px; cursor: pointer;
+    }
+    .music-vol input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 10px; height: 10px;
+      border-radius: 50%; background: var(--accent); cursor: pointer;
+    }
+
+    /* playlist */
+    .playlist { margin-top: 12px; display: flex; flex-direction: column; gap: 4px; }
+    .playlist-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 7px 10px; border-radius: 8px;
+      cursor: pointer; transition: background .15s;
+      font-size: 11px; color: var(--muted);
+    }
+    .playlist-item:hover { background: rgba(255,255,255,.03); color: var(--text); }
+    .playlist-item.active { color: var(--accent); }
+    .playlist-item.active .pl-idx { color: var(--accent); }
+    .pl-idx { width: 16px; text-align: center; font-size: 10px; flex-shrink: 0; }
+    .pl-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pl-dur  { font-size: 10px; flex-shrink: 0; }
+
+    /* ── Footer ───────────────────────────────── */
+    .footer {
+      text-align: center; font-size: 10px; color: #1e1e30;
+      margin-top: 8px; letter-spacing: 0.5px;
+    }
+    .footer a { color: #2a2a48; text-decoration: none; }
+    .footer a:hover { color: var(--muted); }
+
+    /* custom cursor */
+    * { cursor: none !important; }
+    #cursor {
+      position: fixed; z-index: 9999;
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--accent);
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      transition: transform .08s ease, width .2s, height .2s, opacity .2s;
+      box-shadow: 0 0 12px rgba(157,125,255,.7);
+      mix-blend-mode: screen;
+    }
+    #cursor-ring {
+      position: fixed; z-index: 9998;
+      width: 28px; height: 28px; border-radius: 50%;
+      border: 1px solid rgba(157,125,255,.4);
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      transition: transform .18s ease, width .2s, height .2s;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Custom cursor -->
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
+
+<!-- Background particles -->
+<canvas id="bg-canvas"></canvas>
+
+<div class="wrap">
+
+  <!-- ── Profile ──────────────────────────────── -->
+  <div class="profile-card">
+    <!-- CHANGE: replace src with your avatar image URL -->
+    <div class="avatar-ring">
+      <img id="avatar-img" src="https://crafatar.com/avatars/BotTele2?size=90&overlay" alt="avatar"
+           onerror="this.src='https://crafatar.com/avatars/steve?size=90&overlay'" />
+    </div>
+    <div>
+      <div class="profile-name">BotTele2</div>
+      <!-- CHANGE: your tagline -->
+      <div class="profile-tag">18 · 🇷🇺</div>
+    </div>
+    <!-- CHANGE: your status text -->
+    <div class="status">
+      <div class="status-dot"></div>
+      online
+    </div>
+    <!-- CHANGE: your bio -->
+    <p class="profile-bio">roblox trader · minecraft player · script kid</p>
+  </div>
+
+  <!-- ── Social Links ──────────────────────────── -->
+  <div class="section-label">Socials</div>
+  <div class="links" id="links-container">
+
+    <!--
+      HOW TO ADD/EDIT LINKS:
+      Copy one of the blocks below and change:
+        href="..."        → your link
+        class="ic-???"   → color theme (see list above in CSS)
+        the emoji/SVG    → your icon
+        link-name text   → display name
+        link-sub text    → subtitle / username
+      To REMOVE a link, just delete its entire <a> block.
+    -->
+
+    <!-- Discord -->
+    <a class="link-card" href="https://discord.com/users/1248066052596699149" target="_blank" style="animation-delay:.15s">
+      <div class="link-icon ic-discord">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/>
+        </svg>
+      </div>
+      <div class="link-text">
+        <div class="link-name">Discord</div>
+        <div class="link-sub">BotTele2</div>
+      </div>
+      <div class="link-arrow">→</div>
+    </a>
+
+    <!-- Telegram -->
+    <a class="link-card" href="https://t.me/swinesty" target="_blank" style="animation-delay:.2s">
+      <div class="link-icon ic-telegram">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+        </svg>
+      </div>
+      <div class="link-text">
+        <div class="link-name">Telegram</div>
+        <div class="link-sub">@swinesty</div>
+      </div>
+      <div class="link-arrow">→</div>
+    </a>
+
+    <!-- Pekora.zip -->
+    <a class="link-card" href="https://www.pekora.zip/users/39596/profile" target="_blank" style="animation-delay:.25s">
+      <div class="link-icon ic-pekora">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm4.24 16L12 15.45 7.77 18l1.12-4.81-3.73-3.23 4.92-.42L12 5l1.92 4.53 4.92.42-3.73 3.23L16.23 18z"/>
+        </svg>
+      </div>
+      <div class="link-text">
+        <div class="link-name">Pekora.zip</div>
+        <div class="link-sub">BotTele2</div>
+      </div>
+      <div class="link-arrow">→</div>
+    </a>
+
+    <!-- NameMC -->
+    <a class="link-card" href="https://namemc.com/profile/YOURUSERNAME" target="_blank" style="animation-delay:.3s">
+      <div class="link-icon ic-namemc">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M13 2.05v2.02c3.95.49 7 3.85 7 7.93 0 3.21-1.81 6-4.72 7.72L13 17v5h5l-1.22-1.22C19.91 19.07 22 15.76 22 12c0-5.18-3.95-9.45-9-9.95zM11 2.05C5.95 2.55 2 6.82 2 12c0 3.76 2.09 7.07 5.22 8.78L6 22h5v-5l-2.28 2.28C7.81 18 6 15.21 6 12c0-4.08 3.05-7.44 7-7.93V2.05z"/>
+        </svg>
+      </div>
+      <div class="link-text">
+        <div class="link-name">NameMC</div>
+        <!-- CHANGE: your minecraft username -->
+        <div class="link-sub">BotTele2</div>
+      </div>
+      <div class="link-arrow">→</div>
+    </a>
+
+    <!-- TikTok -->
+    <a class="link-card" href="https://www.tiktok.com/@YOURUSERNAME" target="_blank" style="animation-delay:.35s">
+      <div class="link-icon ic-tiktok">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.18 8.18 0 0 0 4.78 1.52V6.78a4.85 4.85 0 0 1-1.01-.09z"/>
+        </svg>
+      </div>
+      <div class="link-text">
+        <div class="link-name">TikTok</div>
+        <!-- CHANGE: your tiktok username -->
+        <div class="link-sub">@yourusername</div>
+      </div>
+      <div class="link-arrow">→</div>
+    </a>
+
+    <!-- GitHub -->
+    <a class="link-card" href="https://github.com/justoversleeping" target="_blank" style="animation-delay:.4s">
+      <div class="link-icon ic-github">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/>
+        </svg>
+      </div>
+      <div class="link-text">
+        <div class="link-name">GitHub</div>
+        <div class="link-sub">@justoversleeping</div>
+      </div>
+      <div class="link-arrow">→</div>
+    </a>
+
+  </div>
+
+  <!-- ── Music Player ──────────────────────────── -->
+  <div class="music-card">
+    <div class="music-header">Now Playing</div>
+    <div class="music-inner">
+      <div class="music-art" id="music-art">
+        <div class="music-art-placeholder" id="art-placeholder">🎵</div>
+        <img id="art-img" src="" alt="" style="display:none;position:absolute;inset:0;" />
+      </div>
+      <div class="music-info">
+        <div class="music-title" id="music-title">Over My Dead Body</div>
+        <div class="music-artist" id="music-artist">Drake</div>
+      </div>
+    </div>
+
+    <div class="music-controls">
+      <button class="music-btn" id="btn-prev" title="Previous">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
+      </button>
+      <button class="music-btn play" id="btn-play" title="Play/Pause">
+        <svg id="icon-play" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        <svg id="icon-pause" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="display:none"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+      </button>
+      <button class="music-btn" id="btn-next" title="Next">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zm2-8.14 4.77 2.14L8 14.14V9.86zM16 6h2v12h-2z"/></svg>
+      </button>
+
+      <div class="music-progress-wrap" id="progress-wrap">
+        <div class="music-progress-fill" id="progress-fill"></div>
+      </div>
+      <div class="music-time" id="music-time">0:00</div>
+    </div>
+
+    <div class="music-vol">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="color:var(--muted)">
+        <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/>
+      </svg>
+      <input type="range" id="vol-slider" min="0" max="100" value="70" />
+    </div>
+  </div>
+
+  <div class="footer">
+    made with 💜 · <a href="https://github.com" target="_blank">github pages</a>
+  </div>
+</div>
+
+
+<audio id="audio-el"></audio>
+
+<script>
+const PLAYLIST = [
+  { title: 'Over My Dead Body', artist: 'Drake', src: 'Over_My_Dead_Body.mp3', art: '' },
+];
+
+const audio       = document.getElementById('audio-el');
+const btnPlay     = document.getElementById('btn-play');
+const btnPrev     = document.getElementById('btn-prev');
+const btnNext     = document.getElementById('btn-next');
+const iconPlay    = document.getElementById('icon-play');
+const iconPause   = document.getElementById('icon-pause');
+const progFill    = document.getElementById('progress-fill');
+const progWrap    = document.getElementById('progress-wrap');
+const musicTime   = document.getElementById('music-time');
+const musicTitle  = document.getElementById('music-title');
+const musicArtist = document.getElementById('music-artist');
+const musicArt    = document.getElementById('music-art');
+const artImg      = document.getElementById('art-img');
+const artPH       = document.getElementById('art-placeholder');
+const volSlider   = document.getElementById('vol-slider');
+
+let currentIdx = 0;
+let isPlaying  = false;
+
+function fmt(s) {
+  const m = Math.floor(s / 60), sec = Math.floor(s % 60);
+  return `${m}:${sec.toString().padStart(2,'0')}`;
+}
+
+function loadTrack(idx, autoplay = false) {
+  currentIdx = (idx + PLAYLIST.length) % PLAYLIST.length;
+  const t = PLAYLIST[currentIdx];
+  musicTitle.textContent  = t.title;
+  musicArtist.textContent = t.artist;
+  if (t.art) { artImg.src = t.art; artImg.style.display = 'block'; artPH.style.display = 'none'; }
+  else        { artImg.style.display = 'none'; artPH.style.display = 'flex'; }
+  audio.src = t.src; audio.load();
+  if (autoplay) audio.play().then(() => setPlaying(true)).catch(() => {});
+}
+
+function setPlaying(val) {
+  isPlaying = val;
+  iconPlay.style.display  = val ? 'none'  : 'block';
+  iconPause.style.display = val ? 'block' : 'none';
+  musicArt.classList.toggle('spinning', val);
+}
+
+btnPlay.addEventListener('click', () => {
+  if (isPlaying) { audio.pause(); setPlaying(false); }
+  else { audio.play().then(() => setPlaying(true)).catch(() => {}); }
+});
+btnPrev.addEventListener('click', () => loadTrack(currentIdx - 1, isPlaying));
+btnNext.addEventListener('click', () => loadTrack(currentIdx + 1, isPlaying));
+
+audio.addEventListener('timeupdate', () => {
+  if (!audio.duration) return;
+  progFill.style.width = (audio.currentTime / audio.duration * 100) + '%';
+  musicTime.textContent = fmt(audio.currentTime);
+});
+audio.addEventListener('ended', () => loadTrack(currentIdx + 1, true));
+progWrap.addEventListener('click', e => {
+  if (!audio.duration) return;
+  const r = progWrap.getBoundingClientRect();
+  audio.currentTime = ((e.clientX - r.left) / r.width) * audio.duration;
+});
+volSlider.addEventListener('input', () => { audio.volume = volSlider.value / 100; });
+audio.volume = 0.7;
+loadTrack(0);
+
+/* ════════════════════════════════════════════════════
+   BACKGROUND PARTICLES
+════════════════════════════════════════════════════ */
+const canvas = document.getElementById('bg-canvas');
+const ctx    = canvas.getContext('2d');
+let W, H, stars = [];
+
+function resize() {
+  W = canvas.width  = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+
+function mkStar() {
+  return {
+    x:  Math.random() * W,
+    y:  Math.random() * H,
+    r:  Math.random() * 1.2 + 0.2,
+    vx: (Math.random() - .5) * 0.15,
+    vy: (Math.random() - .5) * 0.15,
+    a:  Math.random(),
+  };
+}
+
+function initStars() {
+  stars = Array.from({ length: 110 }, mkStar);
+}
+
+function drawStars() {
+  ctx.clearRect(0, 0, W, H);
+  for (const s of stars) {
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(157,125,255,${s.a * 0.6})`;
+    ctx.fill();
+    s.x += s.vx; s.y += s.vy;
+    if (s.x < 0) s.x = W;
+    if (s.x > W) s.x = 0;
+    if (s.y < 0) s.y = H;
+    if (s.y > H) s.y = 0;
+  }
+  requestAnimationFrame(drawStars);
+}
+
+window.addEventListener('resize', () => { resize(); initStars(); });
+resize(); initStars(); drawStars();
+
+/* ════════════════════════════════════════════════════
+   CUSTOM CURSOR
+════════════════════════════════════════════════════ */
+const cur  = document.getElementById('cursor');
+const ring = document.getElementById('cursor-ring');
+let mx = 0, my = 0, rx = 0, ry = 0;
+
+document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
+
+(function animCursor() {
+  cur.style.left = mx + 'px';  cur.style.top = my + 'px';
+  rx += (mx - rx) * 0.12;
+  ry += (my - ry) * 0.12;
+  ring.style.left = rx + 'px'; ring.style.top = ry + 'px';
+  requestAnimationFrame(animCursor);
+})();
+</script>
+</body>
+</html>
